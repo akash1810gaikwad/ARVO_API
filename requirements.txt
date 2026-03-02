@@ -1,0 +1,54 @@
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Database - MongoDB
+motor==3.3.2
+pymongo==4.6.1
+
+# Database - MSSQL
+pymssql==2.2.11
+sqlalchemy==2.0.25
+
+# Async support
+asyncio==3.4.3
+
+# Cron Jobs
+apscheduler==3.10.4
+
+# Logging
+python-json-logger==2.0.7
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS
+fastapi-cors==0.0.6
+
+# Validation
+email-validator==2.1.0
+
+# Date/Time
+python-dateutil==2.8.2
+
+# HTTP Client
+httpx==0.26.0
+requests==2.31.0
+
+# JWT & Auth
+pyjwt==2.8.0
+google-auth==2.27.0
+bcrypt==5.0.0
+
+# Stripe Payment
+stripe==8.2.0
+
+# Testing (optional)
+pytest==7.4.4
+pytest-asyncio==0.23.3
+
+# QR Code Generation
+qrcode==7.4.2
+Pillow==10.2.0

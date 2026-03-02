@@ -1,0 +1,7 @@
+# MySQL Database Requirements
+pymysql==1.1.0
+cryptography==41.0.7
+
+# Already required (should be in your main requirements.txt)
+# sqlalchemy>=2.0.0
+# pydantic-settings>=2.0.0

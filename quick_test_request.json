@@ -1,0 +1,17 @@
+{
+  "customer_id": 22,
+  "plan_id": 2,
+  "start_date": "2026-02-24",
+  "end_date": "2026-03-24",
+  "children": [
+    {
+      "name": "akasg",
+      "age": 11
+    }
+  ],
+  "currency": "GBP",
+  "auto_renew": true,
+  "payment_method_id": "pm_bypass_test",
+  "sim_type": "eSIM",
+  "promo_code": "TEST2024"
+}
