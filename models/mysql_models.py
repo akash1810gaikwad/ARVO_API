@@ -733,3 +733,76 @@ class OperatorModuleAccess(MySQLBase):
     customer = relationship("Customer", foreign_keys=[customer_id])
     module = relationship("Module", back_populates="operator_accesses")
     granted_by_user = relationship("Customer", foreign_keys=[granted_by])
+
+
+# ============= CHILD LOGIN OTP =============
+
+class ChildLoginOTP(MySQLBase):
+    __tablename__ = "child_login_otps"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    msisdn = Column(String(20), nullable=False, index=True)
+    child_sim_card_id = Column(BigInteger, ForeignKey("child_sim_cards.id"), nullable=False)
+    customer_id = Column(BigInteger, ForeignKey("customer_master.id"), nullable=False)
+    otp_code = Column(String(6), nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    child_sim_card = relationship("ChildSimCard")
+    customer = relationship("Customer")
+
+
+# ============= CHILD LOCATION TRACKING =============
+
+class ChildLocation(MySQLBase):
+    __tablename__ = "locations"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    msisdn = Column(String(20), nullable=False, index=True)
+    latitude = Column(Numeric(10, 8), nullable=False)
+    longitude = Column(Numeric(11, 8), nullable=False)
+    speed = Column(Numeric(10, 2), default=0)
+    battery = Column(Integer, nullable=True)
+    accuracy = Column(Numeric(10, 2), nullable=True)
+    provider = Column(String(20), default='gps')
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+# ============= CHILD ALERTS =============
+
+class ChildAlert(MySQLBase):
+    __tablename__ = "child_alerts"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    msisdn = Column(String(20), nullable=False, index=True)
+    child_sim_card_id = Column(BigInteger, ForeignKey("child_sim_cards.id"), nullable=True, index=True)
+    customer_id = Column(BigInteger, ForeignKey("customer_master.id"), nullable=True, index=True)
+    alert_type = Column(String(50), nullable=False, index=True)  # SOS, BATTERY_LOW, OFFLINE, GEOFENCE, etc.
+    message = Column(Text, nullable=False)
+    latitude = Column(Numeric(10, 8), nullable=True)
+    longitude = Column(Numeric(11, 8), nullable=True)
+    battery_level = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    read_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    child_sim_card = relationship("ChildSimCard")
+    customer = relationship("Customer")
+
+
+# ============= CHILD HEARTBEAT =============
+
+class ChildHeartbeat(MySQLBase):
+    __tablename__ = "child_heartbeats"
+    
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    msisdn = Column(String(20), nullable=False, unique=True, index=True)
+    child_sim_card_id = Column(BigInteger, ForeignKey("child_sim_cards.id"), nullable=True, index=True)
+    last_heartbeat_at = Column(DateTime, nullable=False, index=True)
+    battery_level = Column(Integer, nullable=True)
+    is_online = Column(Boolean, default=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    child_sim_card = relationship("ChildSimCard")

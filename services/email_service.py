@@ -779,3 +779,119 @@ def send_password_reset_otp_email(customer_email: str, customer_name: str, otp_c
         subject=subject,
         body_html=body_html
     )
+
+
+def get_child_login_otp_email_template(parent_name: str, child_name: str, mobile_number: str, otp_code: str) -> str:
+    return f"""<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--[if gte mso 9]>
+<xml>
+<o:OfficeDocumentSettings>
+<o:AllowPNG/>
+<o:PixelsPerInch>96</o:PixelsPerInch>
+</o:OfficeDocumentSettings>
+</xml>
+<![endif]-->
+<title>Child Device Login OTP</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial,sans-serif;">
+
+<table width="100%" bgcolor="#f4f6f8" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center" style="padding:20px;">
+
+<table width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+
+<tr>
+<td align="center" style="padding:40px 30px 20px;">
+<img src="https://arvomobile.co.uk/ARVO_LOGO.png" width="200" alt="ARVO Logo" style="display:block;">
+</td>
+</tr>
+
+<tr>
+<td align="center" style="padding:10px 40px;">
+<h2 style="margin:0; font-size:24px; font-weight:600; color:#111;">Child Device Login Request</h2>
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px 40px;">
+<p style="margin:0 0 15px; font-size:16px; line-height:24px; color:#333;">
+Dear {parent_name},
+</p>
+<p style="margin:0 0 15px; font-size:16px; line-height:24px; color:#333;">
+A login request has been made for <strong>{child_name}'s</strong> device with mobile number <strong>{mobile_number}</strong>.
+</p>
+<p style="margin:0 0 15px; font-size:16px; line-height:24px; color:#333;">
+Please use the following One-Time Password (OTP) to complete the login:
+</p>
+</td>
+</tr>
+
+<tr>
+<td align="center" style="padding:20px 40px;">
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:20px; border-radius:12px; display:inline-block;">
+<p style="margin:0; font-size:36px; font-weight:700; color:#ffffff; letter-spacing:8px; font-family:monospace;">
+{otp_code}
+</p>
+</div>
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px 40px;">
+<p style="margin:0 0 15px; font-size:14px; line-height:22px; color:#666;">
+This OTP is valid for <strong>10 minutes</strong> only.
+</p>
+<p style="margin:0 0 15px; font-size:14px; line-height:22px; color:#666;">
+If you did not request this login, please ignore this email or contact our support team immediately.
+</p>
+</td>
+</tr>
+
+<tr>
+<td style="padding:30px 40px 20px;">
+<hr style="border:none; border-top:1px solid #e0e0e0; margin:0;">
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px 40px;">
+<p style="margin:0 0 10px; font-size:14px; color:#999;">
+Best regards,<br>
+<strong style="color:#667eea;">ARVO Mobile Team</strong>
+</p>
+</td>
+</tr>
+
+<tr>
+<td align="center" style="padding:20px 40px 40px;">
+<p style="margin:0; font-size:12px; color:#999; line-height:18px;">
+This is an automated message. Please do not reply to this email.<br>
+For support, contact us at <a href="mailto:support@arvomobile.co.uk" style="color:#667eea; text-decoration:none;">support@arvomobile.co.uk</a>
+</p>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>"""
+
+
+def send_child_login_otp_email(parent_email: str, parent_name: str, child_name: str, mobile_number: str, otp_code: str) -> bool:
+    subject = "Child Device Login OTP - ARVO"
+    body_html = get_child_login_otp_email_template(parent_name, child_name, mobile_number, otp_code)
+    
+    return send_email(
+        to_email=parent_email,
+        subject=subject,
+        body_html=body_html
+    )

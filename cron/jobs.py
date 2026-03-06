@@ -63,6 +63,70 @@ class CronJobs:
         except Exception as e:
             logger.error(f"Health check failed: {str(e)}")
     
+    async def check_offline_devices(self):
+        """Check for offline child devices and create alerts"""
+        try:
+            from config.mysql_database import MySQLSessionLocal
+            from models.mysql_models import ChildHeartbeat, ChildAlert, ChildSimCard
+
+            if not MySQLSessionLocal:
+                logger.warning("MySQL not connected, skipping offline device check")
+                return
+
+            db = MySQLSessionLocal()
+            
+            try:
+                # Get all heartbeats that haven't been updated in 2 minutes
+                cutoff_time = datetime.utcnow() - timedelta(minutes=2)
+                
+                offline_devices = db.query(ChildHeartbeat).filter(
+                    ChildHeartbeat.last_heartbeat_at < cutoff_time,
+                    ChildHeartbeat.is_online == True
+                ).all()
+                
+                for heartbeat in offline_devices:
+                    # Mark as offline
+                    heartbeat.is_online = False
+                    
+                    # Get child SIM info
+                    child_sim = db.query(ChildSimCard).filter(
+                        ChildSimCard.msisdn == heartbeat.msisdn,
+                        ChildSimCard.is_active == True
+                    ).first()
+                    
+                    if child_sim and child_sim.subscriber:
+                        customer_id = child_sim.subscriber.customer_id
+                        
+                        # Check if we already created an offline alert recently (within last hour)
+                        recent_alert = db.query(ChildAlert).filter(
+                            ChildAlert.msisdn == heartbeat.msisdn,
+                            ChildAlert.alert_type == "OFFLINE",
+                            ChildAlert.created_at > datetime.utcnow() - timedelta(hours=1)
+                        ).first()
+                        
+                        if not recent_alert:
+                            # Create offline alert
+                            alert = ChildAlert(
+                                msisdn=heartbeat.msisdn,
+                                child_sim_card_id=child_sim.id,
+                                customer_id=customer_id,
+                                alert_type="OFFLINE",
+                                message=f"{child_sim.child_name}'s device is offline",
+                                battery_level=heartbeat.battery_level,
+                                is_read=False
+                            )
+                            db.add(alert)
+                            logger.info(f"Offline alert created for {heartbeat.msisdn}")
+                
+                db.commit()
+                logger.debug(f"Offline device check completed: {len(offline_devices)} devices marked offline")
+                
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to check offline devices: {str(e)}")
+    
     def start(self):
         """Start all cron jobs"""
         if not settings.ENABLE_CRON_JOBS:
@@ -102,6 +166,15 @@ class CronJobs:
             CronTrigger(minute="*/15"),
             id="health_check",
             name="System health check",
+            replace_existing=True
+        )
+        
+        # Check offline devices - runs every minute
+        self.scheduler.add_job(
+            self.check_offline_devices,
+            CronTrigger(minute="*"),
+            id="check_offline_devices",
+            name="Check for offline child devices",
             replace_existing=True
         )
         

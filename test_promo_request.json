@@ -1,8 +1,0 @@
-{
-  "code": "TEST2024",
-  "description": "Test promo code for development - bypasses Stripe payment",
-  "message": "Test mode: Payment bypassed",
-  "is_active": true,
-  "bypass_payment": true,
-  "activate_sim": false
-}

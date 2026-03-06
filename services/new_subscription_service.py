@@ -251,11 +251,14 @@ class NewSubscriptionService:
             except Exception as journey_error:
                 logger.error(f"Failed to update journey Step 2: {journey_error}")
             
-            # STEP 4: Assign SIM Cards
-            sim_cards = self._assign_sim_cards(db, subscription, subscriber, request.children, request.sim_type, order, ip_address, not activate_sim)
-            if not sim_cards:
-                raise Exception("Failed to assign SIM cards")
-            
+            # STEP 4: Assign SIM Cards (only if pSIM is selected)
+            sim_cards = []
+            if request.sim_type == "pSIM":
+                sim_cards = self._assign_sim_cards(db, subscription, subscriber, request.children, request.sim_type, order, ip_address, not activate_sim)
+                if not sim_cards:
+                    logger.warning(f"No SIM cards assigned for order {order.order_number} - continuing without SIM allocation")
+                    sim_cards = []  # Initialize empty list to continue
+
             order.process_state = "SIMS_ASSIGNED"
             order.last_successful_step = "SIMS_ASSIGNED"
             db.commit()
@@ -298,61 +301,66 @@ class NewSubscriptionService:
             order.completed_at = datetime.utcnow()
             db.commit()
             
-            # Send QR code emails for all SIM cards immediately after order completion
-            try:
-                from services.email_service import send_esim_qr_email
-                from utils.qr_generator import generate_qr_code
-                
-                logger.info(f"Sending QR code emails for {len(sim_cards)} SIM cards")
-                
-                for idx, sim_card in enumerate(sim_cards, start=1):
-                    try:
-                        # Use activation_code if available, otherwise use ICCID
-                        activation_code_to_use = sim_card.activation_code or sim_card.iccid
-                        
-                        logger.info(f"Preparing QR code email {idx}/{len(sim_cards)} for {sim_card.child_name}")
-                        
-                        # Generate QR code
-                        qr_image_bytes = generate_qr_code(activation_code_to_use, size=200)
-                        
-                        # Send email
-                        email_sent = send_esim_qr_email(
-                            customer_email=customer.email,
-                            child_name=sim_card.child_name,
-                            mobile_number=sim_card.msisdn or "Pending",
-                            iccid=sim_card.iccid,
-                            qr_code=activation_code_to_use,
-                            qr_image_bytes=qr_image_bytes
-                        )
-                        
-                        if email_sent:
-                            logger.info(f"QR code email sent successfully to {customer.email} for {sim_card.child_name}")
-                        else:
-                            logger.warning(f"Failed to send QR code email for {sim_card.child_name}")
-                            
-                    except Exception as email_error:
-                        logger.error(f"Error sending QR code email for {sim_card.child_name}: {str(email_error)}", exc_info=True)
-                
-                # USER JOURNEY STEP 6: QR Code Generation & Email
+            # Send QR code emails for all SIM cards immediately after order completion (only if pSIM is selected)
+            if request.sim_type == "pSIM" and sim_cards:
                 try:
-                    from repositories.user_journey_repo import UserJourneyRepository
-                    UserJourneyRepository.update_qr_code_generation(
-                        db=db,
-                        order_id=order.id,
-                        payload_data={
-                            "qr_code_generated": True,
-                            "email_sent": True,
-                            "email_to": customer.email,
-                            "total_emails_sent": len(sim_cards),
-                            "children_names": [sim.child_name for sim in sim_cards]
-                        }
-                    )
-                    logger.info(f"Journey Step 6 (QR Code & Email) completed for order {order.id}")
-                except Exception as journey_error:
-                    logger.error(f"Failed to update journey Step 6: {journey_error}")
-                    
-            except Exception as qr_error:
-                logger.error(f"Error in QR code email process: {str(qr_error)}", exc_info=True)
+                    from services.email_service import send_esim_qr_email
+                    from utils.qr_generator import generate_qr_code
+
+                    logger.info(f"Sending QR code emails for {len(sim_cards)} SIM cards")
+
+                    for idx, sim_card in enumerate(sim_cards, start=1):
+                        try:
+                            # Use activation_code if available, otherwise use ICCID
+                            activation_code_to_use = sim_card.activation_code or sim_card.iccid
+
+                            logger.info(f"Preparing QR code email {idx}/{len(sim_cards)} for {sim_card.child_name}")
+
+                            # Generate QR code
+                            qr_image_bytes = generate_qr_code(activation_code_to_use, size=200)
+
+                            # Send email
+                            email_sent = send_esim_qr_email(
+                                customer_email=customer.email,
+                                child_name=sim_card.child_name,
+                                mobile_number=sim_card.msisdn or "Pending",
+                                iccid=sim_card.iccid,
+                                qr_code=activation_code_to_use,
+                                qr_image_bytes=qr_image_bytes
+                            )
+
+                            if email_sent:
+                                logger.info(f"QR code email sent successfully to {customer.email} for {sim_card.child_name}")
+                            else:
+                                logger.warning(f"Failed to send QR code email for {sim_card.child_name}")
+
+                        except Exception as email_error:
+                            logger.error(f"Error sending QR code email for {sim_card.child_name}: {str(email_error)}", exc_info=True)
+
+                    # USER JOURNEY STEP 6: QR Code Generation & Email
+                    try:
+                        from repositories.user_journey_repo import UserJourneyRepository
+                        UserJourneyRepository.update_qr_code_generation(
+                            db=db,
+                            order_id=order.id,
+                            payload_data={
+                                "qr_code_generated": True,
+                                "email_sent": True,
+                                "email_to": customer.email,
+                                "total_emails_sent": len(sim_cards),
+                                "children_names": [sim.child_name for sim in sim_cards]
+                            }
+                        )
+                        logger.info(f"Journey Step 6 (QR Code & Email) completed for order {order.id}")
+                    except Exception as journey_error:
+                        logger.error(f"Failed to update journey Step 6: {journey_error}")
+
+                except Exception as qr_error:
+                    logger.error(f"Error in QR code email process: {str(qr_error)}", exc_info=True)
+            elif request.sim_type == "pSIM" and not sim_cards:
+                logger.info(f"No SIM cards available for order {order.order_number} - skipping QR code email sending")
+            else:
+                logger.info(f"Skipping QR code email sending - sim_type is '{request.sim_type}', not 'pSIM'")
             
             # Send order confirmation email with Stripe invoice
             try:
@@ -1005,17 +1013,21 @@ class NewSubscriptionService:
                 subscription = db.query(Subscription).filter(Subscription.id == order.subscription_id).first()
                 subscriber = db.query(Subscriber).filter(Subscriber.id == order.subscriber_id).first()
                 children_data = json.loads(order.children_details)
-                
+
                 # Convert to ChildDetails objects
                 children_objs = [ChildDetails(**c) for c in children_data]
-                
+
                 # Get sim_type from order
                 sim_type = order.sim_type or "pSIM"
-                
-                sim_cards = self._assign_sim_cards(db, subscription, subscriber, children_objs, sim_type, order, ip_address)
-                if not sim_cards:
-                    raise Exception("Failed to resume at SIM assignment (likely no inventory)")
-                
+
+                # Only assign SIMs if pSIM type
+                if sim_type == "pSIM":
+                    sim_cards = self._assign_sim_cards(db, subscription, subscriber, children_objs, sim_type, order, ip_address)
+                    if not sim_cards:
+                        logger.warning(f"No SIM cards available for resume order {order.order_number} - continuing without SIM allocation")
+                else:
+                    logger.info(f"Skipping SIM assignment for resume - sim_type is '{sim_type}', not 'pSIM'")
+
                 order.process_state = "SIMS_ASSIGNED"
                 order.last_successful_step = "SIMS_ASSIGNED"
                 db.commit()

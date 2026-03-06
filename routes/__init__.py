@@ -23,5 +23,8 @@ from .stripe_webhook_routes import router as stripe_webhook_router
 from .whop_webhook_routes import router as whop_webhook_router
 from .cdr_routes import router as cdr_router
 from .sim_inventory_routes import router as sim_inventory_router
+from .child_auth_routes import router as child_auth_router
+from .parent_routes import router as parent_router
+from .websocket_routes import router as websocket_router
 
-__all__ = ["audit_router", "api_logs_router", "plan_router", "service_option_router", "plan_service_option_router", "customer_router", "new_subscription_router", "order_router", "transatel_router", "transatel_api_log_router", "email_template_router", "email_router", "parental_control_router", "complaint_router", "operator_router", "subscriber_router", "transaction_router", "password_reset_router", "test_cleanup_router", "user_journey_router", "promo_code_router", "stripe_webhook_router", "whop_webhook_router", "cdr_router", "sim_inventory_router"]
+__all__ = ["audit_router", "api_logs_router", "plan_router", "service_option_router", "plan_service_option_router", "customer_router", "new_subscription_router", "order_router", "transatel_router", "transatel_api_log_router", "email_template_router", "email_router", "parental_control_router", "complaint_router", "operator_router", "subscriber_router", "transaction_router", "password_reset_router", "test_cleanup_router", "user_journey_router", "promo_code_router", "stripe_webhook_router", "whop_webhook_router", "cdr_router", "sim_inventory_router", "child_auth_router", "parent_router", "websocket_router"]

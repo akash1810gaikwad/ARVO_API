@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from config.settings import settings
 from config.mysql_database import connect_mysql, connect_mongodb, close_mongodb, MySQLBase, mysql_engine
-from routes import audit_router, api_logs_router, complaint_router, plan_router, service_option_router, plan_service_option_router, customer_router, new_subscription_router, order_router, transatel_router, transatel_api_log_router, email_template_router, email_router, parental_control_router, operator_router, subscriber_router, transaction_router, password_reset_router, test_cleanup_router, user_journey_router, promo_code_router, stripe_webhook_router, whop_webhook_router, cdr_router, sim_inventory_router
+from routes import audit_router, api_logs_router, complaint_router, plan_router, service_option_router, plan_service_option_router, customer_router, new_subscription_router, order_router, transatel_router, transatel_api_log_router, email_template_router, email_router, parental_control_router, operator_router, subscriber_router, transaction_router, password_reset_router, test_cleanup_router, user_journey_router, promo_code_router, stripe_webhook_router, whop_webhook_router, cdr_router, sim_inventory_router, child_auth_router, parent_router, websocket_router
 from middleware import LoggingMiddleware, OriginValidatorMiddleware
 from cron import cron_jobs
 from utils.logger import logger
@@ -64,10 +64,13 @@ app = FastAPI(
     openapi_url="/openapi.json" if is_development else None,
 )
 
-# Add Origin Validator middleware (runs FIRST — blocks unauthorized origins & Swagger access)
-app.add_middleware(OriginValidatorMiddleware)
+# Middleware order (added in reverse — last added runs first):
+# 1. LoggingMiddleware (runs last, logs everything)
+# 2. CORSMiddleware (handles CORS headers)
+# 3. OriginValidatorMiddleware (runs first, blocks unauthorized origins)
 
-# Add CORS middleware
+# app.add_middleware(LoggingMiddleware)
+# app.add_middleware(OriginValidatorMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -76,8 +79,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add logging middleware
-app.add_middleware(LoggingMiddleware)
+app.add_middleware(OriginValidatorMiddleware)
 
 # Include routers
 app.include_router(customer_router)
@@ -105,6 +107,9 @@ app.include_router(stripe_webhook_router)
 app.include_router(whop_webhook_router)
 app.include_router(cdr_router)
 app.include_router(sim_inventory_router)
+app.include_router(child_auth_router)
+app.include_router(parent_router)
+app.include_router(websocket_router)
 
 
 
